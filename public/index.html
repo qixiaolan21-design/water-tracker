@@ -339,7 +339,22 @@
         .rank-2 { background: silver; color: #333; }
         .rank-3 { background: #cd7f32; color: white; }
         .rank-other { background: #e0e0e0; color: #666; }
-        .leaderboard-name { flex: 1; font-weight: 500; }
+        .leaderboard-name { 
+            flex: 1; 
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .king-badge {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #333;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(255, 215, 0, 0.4);
+        }
         .leaderboard-amount { font-weight: bold; color: #4facfe; }
         .leaderboard-me { background: #e3f2fd; }
         
@@ -1063,11 +1078,12 @@
                 list.innerHTML = data.map((user, i) => {
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
                     const isMe = user.username === currentUser ? 'leaderboard-me' : '';
-                    const title = i === 0 ? ' 👑 喝水大王' : '';
+                    const kingBadge = i === 0 ? '<span class="king-badge">👑 喝水大王</span>' : '';
+                    const meLabel = isMe ? '<span style="color:#667eea;font-size:12px;">(你)</span>' : '';
                     return `
                         <div class="leaderboard-item ${isMe}">
                             <div class="leaderboard-rank ${rankClass}">${i + 1}</div>
-                            <div class="leaderboard-name">${user.username}${title} ${isMe ? '(你)' : ''}</div>
+                            <div class="leaderboard-name">${user.username} ${kingBadge} ${meLabel}</div>
                             <div class="leaderboard-amount">${user.todayTotal}ml</div>
                         </div>
                     `;
