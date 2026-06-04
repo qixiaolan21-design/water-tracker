@@ -1,11 +1,46 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, 'data', 'users.json');
 
-// 内存数据库（实际生产环境建议用 MongoDB/PostgreSQL）
-const users = new Map();
+// 确保数据目录存在
+const dataDir = path.dirname(DATA_FILE);
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
+// 加载数据
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            console.log('📂 数据已加载');
+            return new Map(Object.entries(data));
+        }
+    } catch (err) {
+        console.error('加载数据失败:', err);
+    }
+    return new Map();
+}
+
+// 保存数据
+function saveData() {
+    try {
+        const data = Object.fromEntries(users);
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (err) {
+        console.error('保存数据失败:', err);
+    }
+}
+
+// 内存数据库（从文件加载）
+const users = loadData();
+
+// 定期保存（每5分钟）
+setInterval(saveData, 5 * 60 * 1000);
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -21,8 +56,12 @@ app.post('/api/login', (req, res) => {
             username,
             dailyGoal: 2000,
             waterData: {},
-            createdAt: new Date()
+            createdAt: new Date().toISOString()
         });
+        saveData();
+        console.log(`✨ 新用户注册: ${username}`);
+    } else {
+        console.log(`👤 用户登录: ${username}`);
     }
     
     const user = users.get(username);
@@ -43,7 +82,9 @@ app.post('/api/save', (req, res) => {
     const user = users.get(username);
     user.waterData = waterData;
     user.dailyGoal = dailyGoal;
+    user.lastUpdated = new Date().toISOString();
     
+    saveData();
     res.json({ success: true });
 });
 
@@ -86,4 +127,17 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 喝水记录系统运行在 http://localhost:${PORT}`);
     console.log(`📊 当前用户数: ${users.size}`);
+});
+
+// 进程退出前保存数据
+process.on('SIGTERM', () => {
+    console.log('📝 保存数据中...');
+    saveData();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('📝 保存数据中...');
+    saveData();
+    process.exit(0);
 });
