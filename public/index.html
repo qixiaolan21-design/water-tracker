@@ -593,9 +593,9 @@
     
     <div class="overlay" id="overlay"></div>
     <div class="achievement" id="achievement">
-        <div class="trophy">🏆</div>
-        <h2>恭喜达成目标!</h2>
-        <p>今日喝水目标已完成 🎉</p>
+        <div class="trophy">👑</div>
+        <h2>恭喜成为今日喝水大王!</h2>
+        <p>你已达成今日喝水目标 🎉</p>
     </div>
 
     <script>
@@ -1063,10 +1063,11 @@
                 list.innerHTML = data.map((user, i) => {
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
                     const isMe = user.username === currentUser ? 'leaderboard-me' : '';
+                    const title = i === 0 ? ' 👑 喝水大王' : '';
                     return `
                         <div class="leaderboard-item ${isMe}">
                             <div class="leaderboard-rank ${rankClass}">${i + 1}</div>
-                            <div class="leaderboard-name">${user.username} ${isMe ? '(你)' : ''}</div>
+                            <div class="leaderboard-name">${user.username}${title} ${isMe ? '(你)' : ''}</div>
                             <div class="leaderboard-amount">${user.todayTotal}ml</div>
                         </div>
                     `;
