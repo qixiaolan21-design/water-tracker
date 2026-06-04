@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💧 喝水打卡</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        header h1 { font-size: 28px; margin-bottom: 5px; }
+        header p { opacity: 0.9; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .join-form {
+            text-align: center;
+        }
+        .join-form h2 { margin-bottom: 20px; color: #333; }
+        .join-form input {
+            width: 100%;
+            max-width: 300px;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .join-form button {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .main-content { display: none; }
+        .main-content.show { display: block; }
+        
+        .progress-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .water-circle {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: conic-gradient(#4facfe 0deg, #4facfe var(--progress, 0deg), #e0e0e0 var(--progress, 0deg));
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .water-circle::before {
+            content: '';
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
+        }
+        .water-info { position: relative; z-index: 1; }
+        .water-amount { font-size: 32px; font-weight: bold; color: #333; }
+        .water-unit { font-size: 12px; color: #888; }
+        .water-goal { font-size: 12px; color: #aaa; margin-top: 3px; }
+        
+        .quick-add {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .quick-btn {
+            padding: 12px 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .quick-btn:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+        }
+        .quick-btn .icon { font-size: 20px; display: block; }
+        .quick-btn .amount { font-size: 11px; color: #666; }
+        
+        .custom-add {
+            display: flex;
+            gap: 10px;
+        }
+        .custom-add input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+        }
+        .custom-add button {
+            padding: 12px 24px;
+            background: #00f2fe;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .leaderboard h3 {
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .refresh-btn {
+            font-size: 12px;
+            color: #667eea;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .member-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .member-rank {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-right: 15px;
+        }
+        .rank-1 { background: gold; color: #333; }
+        .rank-2 { background: silver; color: #333; }
+        .rank-3 { background: #cd7f32; color: white; }
+        .rank-other { background: #e0e0e0; color: #666; }
+        .member-name { flex: 1; font-weight: 500; }
+        .member-progress {
+            width: 100px;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-right: 15px;
+        }
+        .member-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 4px;
+        }
+        .member-amount {
+            font-weight: bold;
+            color: #4facfe;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .my-records h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .record-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .record-time { color: #888; font-size: 12px; }
+        .record-amount { color: #4facfe; font-weight: bold; }
+        .empty { text-align: center; color: #aaa; padding: 30px; }
+        
+        .share-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .share-btn {
+            padding: 12px 30px;
+            background: #25d366;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        @media (max-width: 600px) {
+            .quick-add { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💧 喝水打卡</h1>
+            <p>一起喝水，健康生活</p>
+        </header>
+        
+        <div class="card join-form" id="joinForm">
+            <h2>加入房间</h2>
+            <input type="text" id="userName" placeholder="输入你的名字" maxlength="20">
+            <br>
+            <button onclick="joinRoom()">进入房间</button>
+        </div>
+        
+        <div class="main-content" id="mainContent">
+            <div class="card">
+                <div class="progress-section">
+                    <div class="water-circle" id="waterCircle">
+                        <div class="water-info">
+                            <div class="water-amount" id="myTotal">0</div>
+                            <div class="water-unit">ml</div>
+                            <div class="water-goal">目标: <span id="goalDisplay">2000</span>ml</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="quick-add">
+                    <button class="quick-btn" onclick="addWater(100)">
+                        <span class="icon">☕</span>
+                        <span class="amount">100ml</span>
+                    </button>
+                    <button class="quick-btn" onclick="addWater(200)">
+                        <span class="icon">🥤</span>
+                        <span class="amount">200ml</span>
+                    </button>
+                    <button class="quick-btn" onclick="addWater(350)">
+                        <span class="icon">🥛</span>
+                        <span class="amount">350ml</span>
+                    </button>
+                    <button class="quick-btn" onclick="addWater(500)">
+                        <span class="icon">🍶</span>
+                        <span class="amount">500ml</span>
+                    </button>
+                </div>
+                
+                <div class="custom-add">
+                    <input type="number" id="customAmount" placeholder="自定义水量 (ml)">
+                    <button onclick="addCustomWater()">+ 添加</button>
+                </div>
+            </div>
+            
+            <div class="card leaderboard">
+                <h3>
+                    🏆 今日排行榜
+                    <button class="refresh-btn" onclick="loadRoomData()">🔄 刷新</button>
+                </h3>
+                <div class="member-list" id="memberList">
+                    <div class="empty">加载中...</div>
+                </div>
+            </div>
+            
+            <div class="card my-records">
+                <h3>我的记录</h3>
+                <div class="record-list" id="recordList">
+                    <div class="empty">还没有记录哦</div>
+                </div>
+            </div>
+            
+            <div class="share-section">
+                <button class="share-btn" onclick="shareRoom()">📤 邀请朋友加入</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const roomId = window.location.pathname.split('/').pop();
+        let userName = localStorage.getItem('waterTracker_userName') || '';
+        let dailyGoal = 2000;
+        
+        // 页面加载
+        if (userName) {
+            document.getElementById('userName').value = userName;
+        }
+        
+        async function joinRoom() {
+            userName = document.getElementById('userName').value.trim();
+            if (!userName) {
+                alert('请输入你的名字');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/room/${roomId}/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userName })
+                });
+                
+                if (res.ok) {
+                    localStorage.setItem('waterTracker_userName', userName);
+                    document.getElementById('joinForm').style.display = 'none';
+                    document.getElementById('mainContent').classList.add('show');
+                    loadRoomData();
+                    loadMyRecords();
+                } else {
+                    alert('加入失败');
+                }
+            } catch (err) {
+                alert('网络错误');
+            }
+        }
+        
+        async function loadRoomData() {
+            try {
+                const res = await fetch(`/api/room/${roomId}`);
+                const data = await res.json();
+                
+                dailyGoal = data.dailyGoal;
+                document.getElementById('goalDisplay').textContent = dailyGoal;
+                
+                // 渲染排行榜
+                const list = document.getElementById('memberList');
+                if (data.members.length === 0) {
+                    list.innerHTML = '<div class="empty">还没有人加入</div>';
+                } else {
+                    list.innerHTML = data.members.map((m, i) => {
+                        const pct = Math.min(m.todayTotal / dailyGoal * 100, 100);
+                        const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+                        return `
+                            <div class="member-item">
+                                <div class="member-rank ${rankClass}">${i + 1}</div>
+                                <div class="member-name">${m.name} ${m.name === userName ? '(你)' : ''}</div>
+                                <div class="member-progress">
+                                    <div class="member-progress-bar" style="width: ${pct}%"></div>
+                                </div>
+                                <div class="member-amount">${m.todayTotal}ml</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                // 更新我的进度
+                const me = data.members.find(m => m.name === userName);
+                if (me) {
+                    updateMyProgress(me.todayTotal);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function loadMyRecords() {
+            try {
+                const res = await fetch(`/api/room/${roomId}/records/${userName}`);
+                const data = await res.json();
+                
+                const list = document.getElementById('recordList');
+                if (data.records.length === 0) {
+                    list.innerHTML = '<div class="empty">还没有记录哦</div>';
+                } else {
+                    list.innerHTML = data.records.map(r => {
+                        const time = new Date(r.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                        return `
+                            <div class="record-item">
+                                <span class="record-time">${time}</span>
+                                <span class="record-amount">+${r.amount}ml</span>
+                            </div>
+                        `;
+                    }).reverse().join('');
+                }
+                
+                updateMyProgress(data.total);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        function updateMyProgress(total) {
+            document.getElementById('myTotal').textContent = total;
+            const pct = Math.min(total / dailyGoal, 1);
+            document.getElementById('waterCircle').style.setProperty('--progress', (pct * 360) + 'deg');
+        }
+        
+        async function addWater(amount) {
+            try {
+                await fetch(`/api/room/${roomId}/record`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userName, amount })
+                });
+                loadRoomData();
+                loadMyRecords();
+            } catch (err) {
+                alert('添加失败');
+            }
+        }
+        
+        function addCustomWater() {
+            const amount = parseInt(document.getElementById('customAmount').value);
+            if (amount > 0) {
+                addWater(amount);
+                document.getElementById('customAmount').value = '';
+            }
+        }
+        
+        function shareRoom() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('房间链接已复制！分享给朋友吧');
+            });
+        }
+        
+        // 回车提交
+        document.getElementById('userName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') joinRoom();
+        });
+        document.getElementById('customAmount').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCustomWater();
+        });
+        
+        // 自动刷新
+        setInterval(() => {
+            if (document.getElementById('mainContent').classList.contains('show')) {
+                loadRoomData();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

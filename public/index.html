@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💧 我的喝水记录</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* 登录页面 */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-box {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .login-box h1 { font-size: 32px; margin-bottom: 10px; }
+        .login-box .subtitle { color: #888; margin-bottom: 30px; }
+        .login-box input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .login-box input:focus { outline: none; border-color: #667eea; }
+        .login-box button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .login-box .sync-hint {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        /* 主页面 */
+        .main-page { display: none; }
+        .main-page.show { display: block; }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+        header h1 { font-size: 24px; }
+        header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        header .sync-status {
+            font-size: 12px;
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+        }
+        header .sync-status.syncing { background: rgba(255,193,7,0.3); }
+        header .sync-status.synced { background: rgba(76,175,80,0.3); }
+        header .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        /* 日期选择器 */
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .date-selector label {
+            font-weight: 500;
+            color: #333;
+        }
+        .date-selector input[type="date"] {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .date-selector input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .current-date-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .back-today-btn {
+            padding: 8px 16px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .progress-section {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        .water-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(#4facfe 0deg, #4facfe var(--progress, 0deg), #e0e0e0 var(--progress, 0deg));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .water-circle::before {
+            content: '';
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
+        }
+        .water-info { position: relative; z-index: 1; text-align: center; }
+        .water-amount { font-size: 28px; font-weight: bold; color: #333; }
+        .water-unit { font-size: 12px; color: #888; }
+        .water-goal { font-size: 11px; color: #aaa; margin-top: 3px; }
+        
+        .quick-add {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            flex: 1;
+        }
+        .quick-btn {
+            padding: 12px 5px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .quick-btn:hover {
+            border-color: #4facfe;
+            transform: translateY(-2px);
+        }
+        .quick-btn .icon { font-size: 22px; display: block; margin-bottom: 3px; }
+        .quick-btn .amount { font-size: 11px; color: #666; }
+        
+        .custom-add {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .custom-add input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+        }
+        .custom-add button {
+            padding: 12px 24px;
+            background: #00f2fe;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .goal-setting {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .goal-setting input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .goal-setting button {
+            padding: 8px 16px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .chart-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            color: white;
+        }
+        .stat-card .value { font-size: 24px; font-weight: bold; }
+        .stat-card .label { font-size: 12px; opacity: 0.9; margin-top: 5px; }
+        
+        .history-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .clear-btn {
+            font-size: 12px;
+            color: #ff6b6b;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+        .history-item .time { font-size: 12px; color: #888; }
+        .history-item .amount { font-weight: bold; color: #4facfe; }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .empty-state {
+            text-align: center;
+            color: #aaa;
+            padding: 30px;
+        }
+        
+        .leaderboard-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .leaderboard-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            margin-right: 12px;
+        }
+        .rank-1 { background: gold; color: #333; }
+        .rank-2 { background: silver; color: #333; }
+        .rank-3 { background: #cd7f32; color: white; }
+        .rank-other { background: #e0e0e0; color: #666; }
+        .leaderboard-name { flex: 1; font-weight: 500; }
+        .leaderboard-amount { font-weight: bold; color: #4facfe; }
+        .leaderboard-me { background: #e3f2fd; }
+        
+        .achievement {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+            transition: transform 0.5s;
+        }
+        .achievement.show { transform: translate(-50%, -50%) scale(1); }
+        .achievement .trophy { font-size: 60px; margin-bottom: 10px; }
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 999;
+        }
+        .overlay.show { opacity: 1; visibility: visible; }
+        
+        /* 历史记录日历视图 */
+        .calendar-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+        .calendar-header {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding: 8px;
+            font-weight: 500;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            position: relative;
+        }
+        .calendar-day:hover {
+            background: #f0f7ff;
+            transform: scale(1.1);
+        }
+        .calendar-day .day-num {
+            font-weight: 500;
+            color: #333;
+        }
+        .calendar-day .day-amount {
+            font-size: 10px;
+            color: #4facfe;
+            margin-top: 2px;
+        }
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+        .calendar-day.today {
+            background: #667eea;
+        }
+        .calendar-day.today .day-num,
+        .calendar-day.today .day-amount {
+            color: white;
+        }
+        .calendar-day.selected {
+            box-shadow: 0 0 0 3px #4facfe;
+        }
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .calendar-nav button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px 15px;
+            color: #667eea;
+        }
+        .calendar-nav span {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .progress-section { flex-direction: column; }
+            .quick-add { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .date-selector { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div class="login-page" id="loginPage">
+        <div class="login-box">
+            <h1>💧 喝水记录</h1>
+            <p class="subtitle">记录每一天的饮水量</p>
+            <input type="text" id="username" placeholder="输入你的名字" maxlength="20">
+            <button onclick="login()">开始记录</button>
+            <div class="sync-hint">
+                💡 提示：使用相同名字登录，可在不同设备同步数据
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主页面 -->
+    <div class="main-page" id="mainPage">
+        <div class="container">
+            <header>
+                <h1>💧 喝水记录</h1>
+                <div class="user-info">
+                    <span id="displayUsername"></span>
+                    <span class="sync-status" id="syncStatus">已同步</span>
+                    <button class="logout-btn" onclick="logout()">退出</button>
+                </div>
+            </header>
+            
+            <!-- 今日进度 -->
+            <div class="card">
+                <!-- 日期选择器 -->
+                <div class="date-selector">
+                    <label>📅 选择日期：</label>
+                    <input type="date" id="datePicker" onchange="changeDate(this.value)">
+                    <span class="current-date-display" id="currentDateDisplay"></span>
+                    <button class="back-today-btn" onclick="goToToday()">回到今天</button>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="water-circle" id="waterCircle">
+                        <div class="water-info">
+                            <div class="water-amount" id="totalAmount">0</div>
+                            <div class="water-unit">ml</div>
+                            <div class="water-goal">目标: <span id="goalDisplay">2000</span>ml</div>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="quick-add">
+                            <button class="quick-btn" onclick="addWater(100)">
+                                <span class="icon">☕</span>
+                                <span class="amount">100ml</span>
+                            </button>
+                            <button class="quick-btn" onclick="addWater(200)">
+                                <span class="icon">🥤</span>
+                                <span class="amount">200ml</span>
+                            </button>
+                            <button class="quick-btn" onclick="addWater(350)">
+                                <span class="icon">🥛</span>
+                                <span class="amount">350ml</span>
+                            </button>
+                            <button class="quick-btn" onclick="addWater(500)">
+                                <span class="icon">🍶</span>
+                                <span class="amount">500ml</span>
+                            </button>
+                        </div>
+                        <div class="custom-add">
+                            <input type="number" id="customAmount" placeholder="自定义水量 (ml)">
+                            <button onclick="addCustomWater()">+ 添加</button>
+                        </div>
+                        <div class="goal-setting">
+                            <span>每日目标:</span>
+                            <input type="number" id="goalInput" value="2000" min="500" max="5000" step="100">
+                            <span>ml</span>
+                            <button onclick="updateGoal()">设置</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 统计卡片 -->
+            <div class="card">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="value" id="statToday">0</div>
+                        <div class="label">今日 (ml)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statWeek">0</div>
+                        <div class="label">本周平均 (ml)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statMonth">0</div>
+                        <div class="label">本月平均 (ml)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="statTotal">0</div>
+                        <div class="label">总天数</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 历史日历 -->
+            <div class="card calendar-section">
+                <div class="calendar-nav">
+                    <button onclick="changeMonth(-1)">◀</button>
+                    <span id="calendarMonth"></span>
+                    <button onclick="changeMonth(1)">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 趋势图表 -->
+            <div class="card chart-section">
+                <h3>📈 近7天饮水趋势</h3>
+                <div class="chart-container">
+                    <canvas id="waterChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 排行榜 -->
+            <div class="card leaderboard-section">
+                <h3>🏆 今日排行榜</h3>
+                <div class="leaderboard-list" id="leaderboardList">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 记录列表 -->
+            <div class="card history-section">
+                <h3>
+                    <span id="historyTitle">今日记录</span>
+                    <button class="clear-btn" onclick="clearCurrentDate()">清空</button>
+                </h3>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">还没有喝水记录哦 💧</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+    <div class="achievement" id="achievement">
+        <div class="trophy">🏆</div>
+        <h2>恭喜达成目标!</h2>
+        <p>今日喝水目标已完成 🎉</p>
+    </div>
+
+    <script>
+        let currentUser = '';
+        let waterData = {};
+        let dailyGoal = 2000;
+        let chart = null;
+        let isOnline = true;
+        let selectedDate = new Date().toISOString().split('T')[0];
+        let currentCalendarMonth = new Date();
+        
+        // 初始化
+        async function init() {
+            const savedUser = localStorage.getItem('waterTrackerUser');
+            if (savedUser) {
+                await login(savedUser);
+            }
+        }
+        
+        // 登录
+        async function login(username) {
+            if (!username) {
+                username = document.getElementById('username').value.trim();
+            }
+            if (!username) {
+                alert('请输入你的名字');
+                return;
+            }
+            
+            try {
+                setSyncStatus('syncing');
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await res.json();
+                currentUser = data.username;
+                dailyGoal = data.dailyGoal;
+                
+                // 合并服务器数据和本地数据
+                const localData = JSON.parse(localStorage.getItem(`waterTrackerData_${currentUser}`)) || {};
+                waterData = mergeData(data.waterData, localData);
+                
+                localStorage.setItem('waterTrackerUser', currentUser);
+                localStorage.setItem(`waterTrackerData_${currentUser}`, JSON.stringify(waterData));
+                
+                document.getElementById('goalInput').value = dailyGoal;
+                document.getElementById('displayUsername').textContent = currentUser;
+                
+                setSyncStatus('synced');
+                showMainPage();
+                initDatePicker();
+                render();
+                loadLeaderboard();
+            } catch (err) {
+                console.error('登录失败:', err);
+                isOnline = false;
+                currentUser = username;
+                waterData = JSON.parse(localStorage.getItem(`waterTrackerData_${currentUser}`)) || {};
+                dailyGoal = parseInt(localStorage.getItem(`waterTrackerGoal_${currentUser}`)) || 2000;
+                document.getElementById('goalInput').value = dailyGoal;
+                document.getElementById('displayUsername').textContent = currentUser + ' (离线)';
+                setSyncStatus('offline');
+                showMainPage();
+                initDatePicker();
+                render();
+            }
+        }
+        
+        // 合并数据
+        function mergeData(serverData, localData) {
+            const merged = { ...serverData };
+            Object.keys(localData).forEach(date => {
+                if (!merged[date]) merged[date] = [];
+                const existingTimes = new Set(merged[date].map(r => r.time));
+                localData[date].forEach(r => {
+                    if (!existingTimes.has(r.time)) {
+                        merged[date].push(r);
+                    }
+                });
+                merged[date].sort((a, b) => new Date(a.time) - new Date(b.time));
+            });
+            return merged;
+        }
+        
+        // 退出
+        function logout() {
+            if (confirm('确定要退出吗？')) {
+                currentUser = '';
+                waterData = {};
+                localStorage.removeItem('waterTrackerUser');
+                document.getElementById('username').value = '';
+                showLoginPage();
+            }
+        }
+        
+        // 保存到服务器
+        async function saveToServer() {
+            if (!isOnline || !currentUser) return;
+            
+            setSyncStatus('syncing');
+            try {
+                await fetch('/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUser,
+                        waterData: waterData,
+                        dailyGoal: dailyGoal
+                    })
+                });
+                
+                localStorage.setItem(`waterTrackerData_${currentUser}`, JSON.stringify(waterData));
+                localStorage.setItem(`waterTrackerGoal_${currentUser}`, dailyGoal);
+                setSyncStatus('synced');
+            } catch (err) {
+                setSyncStatus('offline');
+                isOnline = false;
+            }
+        }
+        
+        // 设置同步状态
+        function setSyncStatus(status) {
+            const el = document.getElementById('syncStatus');
+            el.className = 'sync-status ' + status;
+            if (status === 'syncing') el.textContent = '同步中...';
+            else if (status === 'synced') el.textContent = '已同步';
+            else if (status === 'offline') el.textContent = '离线模式';
+        }
+        
+        // 显示主页面
+        function showMainPage() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('mainPage').classList.add('show');
+        }
+        
+        // 显示登录页面
+        function showLoginPage() {
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('mainPage').classList.remove('show');
+        }
+        
+        // 初始化日期选择器
+        function initDatePicker() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = selectedDate;
+            updateDateDisplay();
+            renderCalendar();
+        }
+        
+        // 改变日期
+        function changeDate(date) {
+            selectedDate = date;
+            updateDateDisplay();
+            renderCalendar();
+            render();
+        }
+        
+        // 回到今天
+        function goToToday() {
+            selectedDate = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = selectedDate;
+            currentCalendarMonth = new Date();
+            updateDateDisplay();
+            renderCalendar();
+            render();
+        }
+        
+        // 更新日期显示
+        function updateDateDisplay() {
+            const date = new Date(selectedDate);
+            const today = new Date().toISOString().split('T')[0];
+            const isToday = selectedDate === today;
+            
+            const dateStr = date.toLocaleDateString('zh-CN', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            document.getElementById('currentDateDisplay').textContent = isToday ? `${dateStr} (今天)` : dateStr;
+            document.getElementById('historyTitle').textContent = isToday ? '今日记录' : `${date.getMonth() + 1}月${date.getDate()}日记录`;
+        }
+        
+        // 切换月份
+        function changeMonth(delta) {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        // 渲染日历
+        function renderCalendar() {
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            
+            document.getElementById('calendarMonth').textContent = 
+                `${year}年${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+            
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            let html = weekdays.map(d => `<div class="calendar-header">${d}</div>`).join('');
+            
+            // 上月日期
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const dateKey = formatDateKey(new Date(year, month - 1, day));
+                const amount = getDayTotal(dateKey);
+                html += createCalendarDay(day, amount, true, dateKey);
+            }
+            
+            // 当月日期
+            const today = new Date().toISOString().split('T')[0];
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = formatDateKey(new Date(year, month, day));
+                const amount = getDayTotal(dateKey);
+                const isToday = dateKey === today;
+                const isSelected = dateKey === selectedDate;
+                html += createCalendarDay(day, amount, false, dateKey, isToday, isSelected);
+            }
+            
+            // 下月日期
+            const remainingCells = (7 - ((firstDay + daysInMonth) % 7)) % 7;
+            for (let day = 1; day <= remainingCells; day++) {
+                const dateKey = formatDateKey(new Date(year, month + 1, day));
+                const amount = getDayTotal(dateKey);
+                html += createCalendarDay(day, amount, true, dateKey);
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+        
+        // 创建日历天单元
+        function createCalendarDay(day, amount, isOtherMonth, dateKey, isToday = false, isSelected = false) {
+            const amountText = amount > 0 ? `${amount}ml` : '';
+            const classes = ['calendar-day'];
+            if (isOtherMonth) classes.push('other-month');
+            if (isToday) classes.push('today');
+            if (isSelected) classes.push('selected');
+            
+            return `
+                <div class="${classes.join(' ')}" onclick="selectCalendarDate('${dateKey}')">
+                    <span class="day-num">${day}</span>
+                    <span class="day-amount">${amountText}</span>
+                </div>
+            `;
+        }
+        
+        // 选择日历日期
+        function selectCalendarDate(dateKey) {
+            selectedDate = dateKey;
+            document.getElementById('datePicker').value = dateKey;
+            updateDateDisplay();
+            renderCalendar();
+            render();
+        }
+        
+        // 格式化日期键
+        function formatDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+        
+        // 获取某天总量
+        function getDayTotal(dateKey) {
+            if (!waterData[dateKey]) return 0;
+            return waterData[dateKey].reduce((sum, r) => sum + r.amount, 0);
+        }
+        
+        // 获取当前选中日期总量
+        function getSelectedDateTotal() {
+            return getDayTotal(selectedDate);
+        }
+        
+        // 添加记录
+        async function addWater(amount) {
+            if (!waterData[selectedDate]) waterData[selectedDate] = [];
+            
+            waterData[selectedDate].push({
+                amount: amount,
+                time: new Date().toISOString()
+            });
+            
+            await saveToServer();
+            render();
+            loadLeaderboard();
+            
+            // 只有今天达成目标才显示成就
+            const today = new Date().toISOString().split('T')[0];
+            if (selectedDate === today) {
+                const total = getSelectedDateTotal();
+                const achievedKey = `goalAchieved_${currentUser}_${today}`;
+                if (total >= dailyGoal && !localStorage.getItem(achievedKey)) {
+                    localStorage.setItem(achievedKey, 'true');
+                    showAchievement();
+                }
+            }
+        }
+        
+        function addCustomWater() {
+            const amount = parseInt(document.getElementById('customAmount').value);
+            if (amount > 0) {
+                addWater(amount);
+                document.getElementById('customAmount').value = '';
+            }
+        }
+        
+        // 更新目标
+        async function updateGoal() {
+            const newGoal = parseInt(document.getElementById('goalInput').value);
+            if (newGoal >= 500 && newGoal <= 5000) {
+                dailyGoal = newGoal;
+                await saveToServer();
+                document.getElementById('goalDisplay').textContent = dailyGoal;
+                render();
+            }
+        }
+        
+        // 删除记录
+        async function deleteRecord(index) {
+            if (waterData[selectedDate]) {
+                waterData[selectedDate].splice(index, 1);
+                if (waterData[selectedDate].length === 0) delete waterData[selectedDate];
+                await saveToServer();
+                render();
+                loadLeaderboard();
+            }
+        }
+        
+        // 清空当前日期
+        async function clearCurrentDate() {
+            const date = new Date(selectedDate);
+            const dateStr = date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+            if (confirm(`确定要清空 ${dateStr} 的所有记录吗？`)) {
+                delete waterData[selectedDate];
+                await saveToServer();
+                render();
+                loadLeaderboard();
+            }
+        }
+        
+        // 渲染界面
+        function render() {
+            const records = waterData[selectedDate] || [];
+            const total = getSelectedDateTotal();
+            
+            // 进度圆环
+            const pct = Math.min(total / dailyGoal, 1);
+            document.getElementById('waterCircle').style.setProperty('--progress', (pct * 360) + 'deg');
+            document.getElementById('totalAmount').textContent = total;
+            
+            // 记录列表
+            const historyList = document.getElementById('historyList');
+            if (records.length === 0) {
+                historyList.innerHTML = '<div class="empty-state">还没有喝水记录哦 💧</div>';
+            } else {
+                historyList.innerHTML = records.map((r, i) => {
+                    const time = new Date(r.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                    return `<div class="history-item">
+                        <span class="time">${time}</span>
+                        <span class="amount">+${r.amount}ml</span>
+                        <button class="delete-btn" onclick="deleteRecord(${i})">×</button>
+                    </div>`;
+                }).reverse().join('');
+            }
+            
+            // 更新统计
+            updateStats();
+            
+            // 更新图表
+            updateChart();
+            
+            // 更新日历
+            renderCalendar();
+        }
+        
+        // 更新统计数据
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('statToday').textContent = getDayTotal(today);
+            
+            const weekDates = getLastNDays(7);
+            const weekTotals = weekDates.map(d => getDayTotal(d));
+            const weekAvg = weekTotals.reduce((a, b) => a + b, 0) / 7;
+            document.getElementById('statWeek').textContent = Math.round(weekAvg);
+            
+            const monthDates = getLastNDays(30);
+            const monthTotals = monthDates.map(d => getDayTotal(d));
+            const monthAvg = monthTotals.reduce((a, b) => a + b, 0) / 30;
+            document.getElementById('statMonth').textContent = Math.round(monthAvg);
+            
+            document.getElementById('statTotal').textContent = Object.keys(waterData).length;
+        }
+        
+        // 获取最近N天
+        function getLastNDays(n) {
+            const dates = [];
+            for (let i = n - 1; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                dates.push(d.toISOString().split('T')[0]);
+            }
+            return dates;
+        }
+        
+        // 更新图表
+        function updateChart() {
+            const weekDates = getLastNDays(7);
+            const labels = weekDates.map(d => {
+                const date = new Date(d);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            });
+            const data = weekDates.map(d => getDayTotal(d));
+            
+            const ctx = document.getElementById('waterChart').getContext('2d');
+            
+            if (chart) chart.destroy();
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '饮水量 (ml)',
+                        data: data,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+        
+        // 加载排行榜
+        async function loadLeaderboard() {
+            try {
+                const res = await fetch('/api/leaderboard');
+                const data = await res.json();
+                
+                const list = document.getElementById('leaderboardList');
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="empty-state">暂无数据</div>';
+                    return;
+                }
+                
+                list.innerHTML = data.map((user, i) => {
+                    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+                    const isMe = user.username === currentUser ? 'leaderboard-me' : '';
+                    return `
+                        <div class="leaderboard-item ${isMe}">
+                            <div class="leaderboard-rank ${rankClass}">${i + 1}</div>
+                            <div class="leaderboard-name">${user.username} ${isMe ? '(你)' : ''}</div>
+                            <div class="leaderboard-amount">${user.todayTotal}ml</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('加载排行榜失败:', err);
+            }
+        }
+        
+        // 显示成就
+        function showAchievement() {
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('achievement').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('overlay').classList.remove('show');
+                document.getElementById('achievement').classList.remove('show');
+            }, 3000);
+        }
+        
+        // 事件监听
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('customAmount').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCustomWater();
+        });
+        document.getElementById('overlay').addEventListener('click', () => {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('achievement').classList.remove('show');
+        });
+        
+        // 定期刷新排行榜
+        setInterval(() => {
+            if (currentUser) loadLeaderboard();
+        }, 30000);
+        
+        // 启动
+        init();
+    </script>
+</body>
+</html>
