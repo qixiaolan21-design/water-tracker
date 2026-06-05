@@ -119,6 +119,27 @@ app.get('/api/leaderboard', (req, res) => {
     res.json(leaderboard.slice(0, 10));
 });
 
+// 获取昨日排行榜
+app.get('/api/leaderboard/yesterday', (req, res) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const leaderboard = [];
+    
+    users.forEach((user, username) => {
+        const yesterdayRecords = user.waterData[yesterdayStr] || [];
+        const yesterdayTotal = yesterdayRecords.reduce((sum, r) => sum + r.amount, 0);
+        leaderboard.push({
+            username,
+            yesterdayTotal,
+            drinkCount: yesterdayRecords.length
+        });
+    });
+    
+    leaderboard.sort((a, b) => b.yesterdayTotal - a.yesterdayTotal);
+    res.json(leaderboard.slice(0, 10));
+});
+
 // 页面路由
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

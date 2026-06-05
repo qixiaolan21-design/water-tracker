@@ -311,6 +311,26 @@
         .leaderboard-section h3 {
             margin-bottom: 15px;
             color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .leaderboard-tabs {
+            display: flex;
+            gap: 5px;
+        }
+        .leaderboard-tab {
+            padding: 6px 14px;
+            border: none;
+            background: #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .leaderboard-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
         .leaderboard-list {
             display: flex;
@@ -587,7 +607,13 @@
             
             <!-- 排行榜 -->
             <div class="card leaderboard-section">
-                <h3>🏆 今日喝水大王排行榜</h3>
+                <h3>
+                    <span id="leaderboardTitle">🏆 今日喝水大王排行榜</span>
+                    <div class="leaderboard-tabs">
+                        <button class="leaderboard-tab active" id="tabToday" onclick="switchLeaderboard('today')">今日</button>
+                        <button class="leaderboard-tab" id="tabYesterday" onclick="switchLeaderboard('yesterday')">昨日</button>
+                    </div>
+                </h3>
                 <div class="leaderboard-list" id="leaderboardList">
                     <div class="empty-state">加载中...</div>
                 </div>
@@ -621,6 +647,7 @@
         let isOnline = true;
         let selectedDate = new Date().toISOString().split('T')[0];
         let currentCalendarMonth = new Date();
+        let currentLeaderboard = 'today'; // 'today' 或 'yesterday'
         
         // 初始化
         async function init() {
@@ -1063,10 +1090,20 @@
             });
         }
         
+        // 切换排行榜
+        function switchLeaderboard(type) {
+            currentLeaderboard = type;
+            document.getElementById('tabToday').classList.toggle('active', type === 'today');
+            document.getElementById('tabYesterday').classList.toggle('active', type === 'yesterday');
+            document.getElementById('leaderboardTitle').textContent = type === 'today' ? '🏆 今日喝水大王排行榜' : '🏆 昨日喝水大王排行榜';
+            loadLeaderboard();
+        }
+
         // 加载排行榜
         async function loadLeaderboard() {
             try {
-                const res = await fetch('/api/leaderboard');
+                const apiUrl = currentLeaderboard === 'today' ? '/api/leaderboard' : '/api/leaderboard/yesterday';
+                const res = await fetch(apiUrl);
                 const data = await res.json();
                 
                 const list = document.getElementById('leaderboardList');
@@ -1074,6 +1111,8 @@
                     list.innerHTML = '<div class="empty-state">暂无数据</div>';
                     return;
                 }
+                
+                const amountKey = currentLeaderboard === 'today' ? 'todayTotal' : 'yesterdayTotal';
                 
                 list.innerHTML = data.map((user, i) => {
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
@@ -1084,7 +1123,7 @@
                         <div class="leaderboard-item ${isMe}">
                             <div class="leaderboard-rank ${rankClass}">${i + 1}</div>
                             <div class="leaderboard-name">${user.username} ${kingBadge} ${meLabel}</div>
-                            <div class="leaderboard-amount">${user.todayTotal}ml</div>
+                            <div class="leaderboard-amount">${user[amountKey]}ml</div>
                         </div>
                     `;
                 }).join('');
